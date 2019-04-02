@@ -9,10 +9,15 @@
 class FileContentOperate
 {
     private $filePath = ''; // 文件路径
-    
+    private $cacheFileName = ''; // 缓存key值
+    private $redis = null; // redis实例
+
     public function __construct($filePath)
     {
         $this->filePath = $filePath;
+        $this->cacheFileName = md5($filePath);
+        $this->redis = new Redis();
+        $this->redis->connect('127.0.0.1', 6379);
     }
 
     /**
@@ -22,6 +27,8 @@ class FileContentOperate
      */
     public function replaceTarget($replaceCont, $target)
     {
+        $this->cacheFileContent();
+
         $fileCont = file_get_contents($this->filePath);
         $replacedFileCont = str_replace($target, $replaceCont, $fileCont);
         file_put_contents($this->filePath, $replacedFileCont);
@@ -34,6 +41,8 @@ class FileContentOperate
      */
     public function insertAfterTarget($insertCont, $target)
     {
+        $this->cacheFileContent();
+
         $result = null;
         $fileCont = file_get_contents($this->filePath);
         $targetIndex = strpos($fileCont, $target); // 查找目标字符串的位置
@@ -57,6 +66,8 @@ class FileContentOperate
      */
     public function delTargetLine($target, $all = false)
     {
+        $this->cacheFileContent();
+
         $result = null;
         $fileCont = file_get_contents($this->filePath);
         $targetIndex = strpos($fileCont, $target); // 查找目标字符串的位置
@@ -115,15 +126,31 @@ class FileContentOperate
         fclose($file);
     }
 
-    public function cacheFileContent()
+    /**
+     * 缓存文件内容
+     */
+    private function cacheFileContent()
     {
+        $this->redis->rPush($this->cacheFileName, file_get_contents($this->filePath));
+        $this->redis->expire($this->cacheFileName, 3600);
+    }
 
+    /**
+     * 文件内容回滚到上一次操作前内容
+     */
+    public function fileContentRollback()
+    {
+        if($this->redis->exists($this->cacheFileName)) {
+            file_put_contents($this->filePath, $this->redis->rPop($this->cacheFileName));
+        }
     }
 }
+/** 测试 */
+//$test = new FileContentOperate('../public/fileContentOperateTest');
+//$test->showFileContent();
+//print_r($test->getTargetLineNum('夜'));
+//$test->insertAfterTarget('This is a new line', '禁不住');
+//$test->replaceTarget('Night', '夜');
+//$test->delTargetLine('李白', true);
+//$test->fileContentRollback();
 
-$test = new FileContentOperate('../public/test');
-$test->showFileContent();
-print_r($test->getTargetLineNum('夜'));
-$test->replaceTarget('Night', '夜');
-$test->insertAfterTarget('This is a new line', '禁不住');
-$test->delTargetLine('李白', true);
