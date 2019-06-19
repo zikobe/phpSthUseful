@@ -49,8 +49,8 @@
  *
  * -- Example Usage:
  * //example 1:
- * $key 	= "bac09c63f34c9845c707228b20cac5e0";
- * $iv 		= "47c743d1b21de03034e0842352ae6b98";
+ * $key    = "bac09c63f34c9845c707228b20cac5e0";
+ * $iv        = "47c743d1b21de03034e0842352ae6b98";
  * $message = "Meet me at 11 o'clock behind the monument.";
  *
  * $AES              = new AES_Encryption($key, $iv);
@@ -66,8 +66,8 @@
  * var_dump($key,$enc, $aes->decrypt($enc));
  *
  */
-
-class AESEncryption {
+class AESEncryption
+{
 
     private $key, $initVector, $mode, $cipher, $encryption = null, $encoding = false;
     private $allowed_bits = [128, 192, 256];
@@ -83,14 +83,15 @@ class AESEncryption {
     ];
 
     /**
-     * @param $key               = Your secret key that you will use to encrypt/decrypt
+     * @param $key = Your secret key that you will use to encrypt/decrypt
      * @param string $initVector = Your secret vector that you will use to encrypt/decrypt if using CBC, CFB, OFB, or a STREAM algorhitm that requires an IV
-     * @param string $padding    = The padding method you want to use. The default is ZERO (aka NULL byte) [ANSI_X.923,ISO_10126,PKCS7,BIT,ZERO]
-     * @param string $mode       = The encryption mode you want to use. The default is cbc [ecb,cfb,cbc,stream,nofb,ofb]
+     * @param string $padding = The padding method you want to use. The default is ZERO (aka NULL byte) [ANSI_X.923,ISO_10126,PKCS7,BIT,ZERO]
+     * @param string $mode = The encryption mode you want to use. The default is cbc [ecb,cfb,cbc,stream,nofb,ofb]
      * @param bool $encoding
      * @throws Exception
      */
-    public function __construct($key, $initVector = '', $padding = 'ZERO', $mode = 'ecb', $encoding = false) {
+    public function __construct($key, $initVector = '', $padding = 'ZERO', $mode = 'ecb', $encoding = false)
+    {
         $mode = strtolower($mode);
         $padding = strtoupper($padding);
         $encoding = empty($encoding) ? $encoding : strtolower($encoding);
@@ -135,7 +136,8 @@ class AESEncryption {
         $this->initVector = $initVector;
     }
 
-    private function hex2bin($hexdata) {
+    private function hex2bin($hexdata)
+    {
         $bindata = '';
         $length = strlen($hexdata);
         for ($i = 0; $i < $length; $i += 2) {
@@ -150,7 +152,8 @@ class AESEncryption {
      * @param $text
      * @return string
      */
-    public function encrypt($text) {
+    public function encrypt($text)
+    {
         mcrypt_generic_init($this->cipher, $this->key, $this->initVector);
         $encrypted_text = mcrypt_generic($this->cipher, $this->pad($text, $this->block_size));
         mcrypt_generic_deinit($this->cipher);
@@ -166,7 +169,8 @@ class AESEncryption {
      * @param $text
      * @return type
      */
-    public function decrypt($text) {
+    public function decrypt($text)
+    {
         mcrypt_generic_init($this->cipher, $this->key, $this->initVector);
         if ($this->encoding === false) {
             $decrypted_text = mdecrypt_generic($this->cipher, $text);
@@ -183,8 +187,9 @@ class AESEncryption {
      * This information is necessary to later decrypt an encrypted message
      * @return array
      */
-    public function getConfiguration() {
-        return array(
+    public function getConfiguration()
+    {
+        return [
             'key' => $this->key,
             'init_vector' => $this->initVector,
             'padding' => $this->padding,
@@ -192,7 +197,7 @@ class AESEncryption {
             'encoding' => $this->encoding,
             'encryption' => $this->encryption . ' Bit',
             'block_size' => $this->block_size,
-        );
+        ];
     }
 
     /**
@@ -201,8 +206,9 @@ class AESEncryption {
      * @param type $block_size
      * @return type
      */
-    private function pad($text, $block_size) {
-        return call_user_func_array(array(__CLASS__, 'pad_' . $this->allowed_paddings[$this->padding]), array($text, $block_size));
+    private function pad($text, $block_size)
+    {
+        return call_user_func_array([__CLASS__, 'pad_' . $this->allowed_paddings[$this->padding]], [$text, $block_size]);
     }
 
     /**
@@ -210,11 +216,13 @@ class AESEncryption {
      * @param type $text
      * @return type
      */
-    private function unpad($text) {
-        return call_user_func_array(array(__CLASS__, 'unpad_' . $this->allowed_paddings[$this->padding]), array($text));
+    private function unpad($text)
+    {
+        return call_user_func_array([__CLASS__, 'unpad_' . $this->allowed_paddings[$this->padding]], [$text]);
     }
 
-    public static function pad_ISO_10126($data, $block_size) {
+    public static function pad_ISO_10126($data, $block_size)
+    {
         $padding = $block_size - (strlen($data) % $block_size);
 
         for ($x = 1; $x < $padding; $x++) {
@@ -225,17 +233,20 @@ class AESEncryption {
         return $data . chr($padding);
     }
 
-    public static function unpad_ISO_10126($data) {
+    public static function unpad_ISO_10126($data)
+    {
         $length = ord(substr($data, -1));
         return substr($data, 0, strlen($data) - $length);
     }
 
-    public static function pad_ANSI_X923($data, $block_size) {
+    public static function pad_ANSI_X923($data, $block_size)
+    {
         $padding = $block_size - (strlen($data) % $block_size);
         return $data . str_repeat(chr(0), $padding - 1) . chr($padding);
     }
 
-    public static function unpad_ANSI_X923($data) {
+    public static function unpad_ANSI_X923($data)
+    {
         $length = ord(substr($data, -1));
         $padding_position = strlen($data) - $length;
         $padding = substr($data, $padding_position, -1);
@@ -249,13 +260,15 @@ class AESEncryption {
         return substr($data, 0, $padding_position);
     }
 
-    public static function pad_PKCS7($data, $block_size) {
+    public static function pad_PKCS7($data, $block_size)
+    {
         $padding = $block_size - (strlen($data) % $block_size);
         $pattern = chr($padding);
         return $data . str_repeat($pattern, $padding);
     }
 
-    public static function unpad_PKCS7($data) {
+    public static function unpad_PKCS7($data)
+    {
         $pattern = substr($data, -1);
         $length = ord($pattern);
         $padding = str_repeat($pattern, $length);
@@ -268,12 +281,14 @@ class AESEncryption {
         return $data;
     }
 
-    public static function pad_BIT($data, $block_size) {
+    public static function pad_BIT($data, $block_size)
+    {
         $length = $block_size - (strlen($data) % $block_size) - 1;
         return $data . "\x80" . str_repeat("\x00", $length);
     }
 
-    public static function unpad_BIT($data) {
+    public static function unpad_BIT($data)
+    {
         if (substr(rtrim($data, "\x00"), -1) == "\x80") {
             return substr(rtrim($data, "\x00"), 0, -1);
         }
@@ -281,16 +296,19 @@ class AESEncryption {
         return $data;
     }
 
-    public static function pad_ZERO($data, $block_size) {
+    public static function pad_ZERO($data, $block_size)
+    {
         $length = $block_size - (strlen($data) % $block_size);
         return $data . str_repeat("\x00", $length);
     }
 
-    public static function unpad_ZERO($data) {
+    public static function unpad_ZERO($data)
+    {
         return rtrim($data, "\x00");
     }
 
-    public function __destruct() {
+    public function __destruct()
+    {
         mcrypt_module_close($this->cipher);
     }
 }
@@ -307,12 +325,12 @@ echo "待加密文本：{$text}\nAES加密模式：ECB\n填充方式：zeropaddi
 echo "============================================\n";
 echo "选择加密输出格式:\n  1.hex\n  2.base64\n请选择： ";
 $encodingType = trim(fgets(STDIN));
-if(!in_array($encodingType, [1,2])){
+if (!in_array($encodingType, [1, 2])) {
     echo 'encoding type invalid', PHP_EOL;
     exit(0);
 }
 $encoding = $encodingType == 1 ? 'hex' : 'base64';
-$test = new AESEncryption($key,'','ZERO','ecb',$encoding);
+$test = new AESEncryption($key, '', 'ZERO', 'ecb', $encoding);
 $encryptText = $test->encrypt($text); // 加密
 $decryptText = $test->decrypt($encryptText); // 解密
 echo "============================================\n";
