@@ -11,13 +11,16 @@ class SortAlgorithm
     private $nums = [];
     private $algorithm = [];
     private $allowed_algorithms = [
-        'bubble',     // 冒泡排序
-        'insertion',  // 插入排序
-        'quick',      // 快速排序
-        'selection',  // 选择排序
-        'merge',      // 归并排序
-        'shell',      // 希尔排序
-        'heap',       // 堆排序
+        'bubble',    // 冒泡排序
+        'insertion', // 插入排序
+        'quick',     // 快速排序
+        'selection', // 选择排序
+        'merge',     // 归并排序
+        'shell',     // 希尔排序
+        'heap',      // 堆排序
+        'counting',  // 计数排序
+        'lsdRadix',  // 基数排序
+        'bucket',    // 桶排序
     ];
 
     public function __construct(array $nums, $algorithm)
@@ -321,7 +324,7 @@ class SortAlgorithm
      * @param $nums
      * @return mixed
      */
-    protected function heap_sort($nums)
+    protected function heap_sort(array $nums)
     {
         $len = count($nums);
         if ($len <= 1) {
@@ -354,12 +357,10 @@ class SortAlgorithm
             $son++;
 
         // 如果父节点小于子节点时，交换父子内容再继续子节点和孙节点比较
-        if ($nums[$dad] < $nums[$son])
-        {
+        if ($nums[$dad] < $nums[$son]) {
             $this->swap($nums[$dad], $nums[$son]);
             $this->max_heapify($nums, $son, $len);
         }
-
     }
 
     private function swap(&$x, &$y)
@@ -368,6 +369,165 @@ class SortAlgorithm
         $x = $y;
         $y = $temp;
     }
+
+    /**
+     * 计数排序
+     *
+     * 算法思想：计数排序是一个非基于比较的排序算法，它的优势在于对一定范围内的整数排序时，它的复杂度为O(n+k)（其中k是整数的范围），
+     * 快于任何比较排序算法。当然这是一种牺牲空间换取时间的做法，而且当O(k)>O(n*log(n))的时候其效率反而不如基于比较的排序
+     * （基于比较的排序的时间复杂度在理论上的下限是O(n*log(n))，如归并排序，堆排序）。
+     * 算法步骤：
+     * 1.找出待排序的数组中最大和最小的元素；
+     * 2.统计数组中每个值为i的元素出现的次数，存入数组 C 的第 i 项；
+     * 3.依次统计出C[i]表示数组中小于等于i的元素出现的个数；
+     * 4.从带排序列A的最后一个元素开始，将A[i]放到正确的位置（从后往前保证了排序的稳定性）。即前面又几个元素小于等于它，它就放在第几个位置。
+     * 性能分析：
+     * 1、时间复杂度：O(k+n)
+     * 2、空间复杂度：需要额外的内存空间O(k),这是一种牺牲空间换取时间的做法
+     * 3、算法稳定性：不涉及相等元素位置交换，是稳定的排序算法
+     * @param array $nums
+     * @return array
+     */
+    protected function counting_sort(array $nums)
+    {
+        $len = count($nums);
+        if ($len <= 1) {
+            return $nums;
+        }
+
+        // 找出待排序数组中最大值和最小值
+        $max = max($nums);
+        $min = min($nums);
+
+        // 计算待排序的数组中每个元素的个数
+        $count_arr = [];
+        for ($i = $min; $i <= $max; $i++) {
+            $count_arr[$i] = 0;
+        }
+        foreach ($nums as $num) {
+            $count_arr[$num]++;
+        }
+
+        // 输出结果数组
+        $ret = [];
+        foreach ($count_arr as $k => $c) {
+            for ($i = 0; $i < $c; $i++) {
+                $ret[] = $k;
+            }
+        }
+
+        return $ret;
+    }
+
+    /**
+     * 基数排序
+     *
+     * 算法思想：基数排序是一种非比较型整数排序算法，其原理是将整数按位数切割成不同的数字，然后按每个位数分别比较。
+     * 基数排序法会使用到桶，顾名思义，通过将要比较的位（个位、十位、百位...），将要排序的元素分配到0~9个桶中，
+     * 借以达到排序的作用，在某些时候，基数排序法的效率高于其它的比较性排序法。
+     * 算法步骤：
+     * 1.将所有待比较数值（正整数）统一为同样的数位长度，数位较短的数前面补零
+     * 2.从最低位开始，依次进行一次排序
+     * 3.这样从最低位排序一直到最高位排序完成以后，数列就变成一个有序序列
+     * 性能分析：
+     * 1、时间复杂度：O(k*n)，其中n是排序元素个数，k是最大数字位数
+     * 2、空间复杂度：该算法的空间复杂度就是在分配元素时，使用的桶空间；所以空间复杂度为：O(10*length) = O(length)
+     * 3、算法稳定性：不涉及相等元素位置交换，是稳定的排序算法
+     * @param array $nums
+     * @return array
+     */
+    protected function lsdRadix_sort(array $nums)
+    {
+        $len = count($nums);
+        if ($len <= 1) {
+            return $nums;
+        }
+
+        $max = max($nums);
+        $loop = $this->getLoopTimes($max);
+        // 对每一位进行桶分配（1 表示个位，$loop 表示最高位）
+        for ($i = 1; $i <= $loop; $i++) {
+            $this->lsdRadix_sort_c($nums, $i);
+        }
+
+        return $nums;
+    }
+
+    // 获取最大数的位数,最大值的位数就是我们分配桶的次数
+    private function getLoopTimes($maxNum)
+    {
+        $count = 0;
+        $temp = $maxNum;
+        do {
+            $count++;
+            $temp = floor($temp / 10);
+        } while ($temp != 0);
+
+        return $count;
+    }
+
+    private function lsdRadix_sort_c(&$nums, $pos)
+    {
+        // 初始化桶数组:
+        // 第一维是 0-9 十个数
+        // 第二维这样定义是因为有可能待排序的数组中的所有数的某一位上的值是一样的，这样就全挤在一个桶里面了
+        $bucketArr = [];
+        for ($i = 0; $i <= 9; $i++) {
+            $bucketArr[$i] = array();
+        }
+
+        // 入桶
+        $tempNum = pow(10, $pos - 1);
+        for ($i = 0; $i < count($nums); $i++) {
+            // 求数组元素pos位上的数字（pos 1代表个位 2代表十位...以此类推）
+            $posIndex = ($nums[$i] / $tempNum) % 10;
+            array_push($bucketArr[$posIndex], $nums[$i]);
+        }
+
+        // 还原已经排好序的桶数据到原数组中
+        $i = 0;
+        while ($i < count($nums)) {
+            foreach ($bucketArr as $bucket) {
+                if (!empty($bucket)) {
+                    foreach ($bucket as $num) {
+                        $nums[$i++] = $num;
+                    }
+                }
+            }
+        }
+    }
+
+    protected function bucket_sort(array $nums)
+    {
+        $len = count($nums);
+        if ($len <= 1) {
+            return $nums;
+        }
+
+        $min = min($nums);
+        $max = max($nums);
+        $n = ceil(($max - $min) / $len) + 1;
+        // 设置木桶
+        $buckets = [];
+        for ($i = 0; $i < $n; $i++) {
+            $buckets[$i] = [];
+        }
+        // 将每个元素放入桶
+        for ($i = 0; $i < $len; $i++) {
+            $index = ceil(($nums[$i] - $min) / $len); // 映射函数f(k) = (k - min) / len
+            $buckets[$index][] = $nums[$i];
+        }
+        // 对每个桶进行排序
+        $ret = [];
+        for ($i = 0; $i < $n; $i++) {
+            sort($buckets[$i]); // 每个bucket各自排序，或用不同的排序算法，或者递归的使用bucket sort算法(此处用函数sort代替)
+            // 合并所有桶中的元素
+            $ret = array_merge($ret, $buckets[$i]);
+        }
+
+        return $ret;
+    }
+
 }
 
 /**
@@ -386,7 +546,10 @@ $algorithms = [
     '选择排序' => 'selection',
     '归并排序' => 'merge',
     '快速排序' => 'quick',
-    '堆排序' => 'heap'
+    '堆排序' => 'heap',
+    '计数排序' => 'counting',
+    '基数排序' => 'lsdRadix',
+    '桶排序' => 'bucket'
 ];
 $sortRet = [];
 foreach ($algorithms as $algorithmName => $algorithm) {
@@ -401,10 +564,10 @@ foreach ($algorithms as $algorithmName => $algorithm) {
         echo $e->getMessage();
     }
 }
-asort($sortRet);
+asort($sortRet); // 按运行时间升序排序
 $mask = "|%-15s |%-20.20s |\n";
 printf($mask, 'Name', 'Time(ms)');
-foreach ($sortRet as $key=>$value){
+foreach ($sortRet as $key => $value) {
     printf($mask, $algorithms[$key] . 'Sort', $value);
 }
 
